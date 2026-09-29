@@ -41,8 +41,14 @@ int main() {
 	FILE* fMozos = abrirArchivoEditable(nombreArchMozos);
 	FILE* fInventario = abrirArchivoEditable(nombreArchInventario);
 	if (!verificarAperturaDeArchivo(fMozos,nombreArchMozos) || !verificarAperturaDeArchivo(fInventario,nombreArchInventario)) return -1; //no se puede abrir mozos o inv --> no se puede seguir
-	
-	
+	bool cargarOtroDia;
+	while (true) {
+		cargarDia(fMozos, fInventario);
+		cout << "Cargar las ventas de otro dia? (1 = si | 0 = no)";
+		cin >> cargarOtroDia;
+		if (cargarOtroDia) continue;
+		else break;
+	}
 	fclose(fMozos);
 	fclose(fInventario);
 	return 0;
