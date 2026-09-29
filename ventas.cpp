@@ -24,10 +24,13 @@ struct Comanda {
 const float TASA_COMISION = 0.10f; //10% de lo vendido
 
 //nombres de archivos
-//mozos.dat
+const char nombreArchMozos[10] = "mozos.dat";
+const char nombreArchInventario[15] = "inventario.dat";
 //comandas_dd-mm-aaaa.dat
 //comandas_semana_sX_mm.dat
 
+bool verificarAperturaDeArchivo(FILE* f, string nombre);
+FILE* abrirArchivoEditable(const char* nombreArch);
 void cargarFecha(char fecha[]);
 void crearNombreArchivoComanda(char nArchivo[]);
 FILE* abrirArchivoComanda();
@@ -35,7 +38,22 @@ FILE* abrirArchivoComanda();
 
 
 int main() {
+	FILE* fMozos = abrirArchivoEditable(nombreArchMozos);
+	FILE* fInventario = abrirArchivoEditable(nombreArchInventario);
+	if (!verificarAperturaDeArchivo(fMozos,nombreArchMozos) || !verificarAperturaDeArchivo(fInventario,nombreArchInventario)) return -1; //no se puede abrir mozos o inv --> no se puede seguir
+	
+	
+	fclose(fMozos);
+	fclose(fInventario);
 	return 0;
+}
+
+FILE* abrirArchivoEditable(const char* nombreArch) {
+	FILE* fM = fopen(nombreArch, "rb+");
+	if (fM == NULL) {
+		cout << "No fue posible abrir el archivo " << nombreArch << endl;
+	}
+	return fM;
 }
 
 
@@ -74,4 +92,12 @@ void crearNombreArchivoComanda(char nArchivo[]) {
 		nArchivo[i] = extension[j++];
 	}
 	return;
+}
+
+bool verificarAperturaDeArchivo(FILE* f, string nombre) {
+	if (f == NULL) {
+		cout << "Erorr al abrir el archivo " << nombre << endl;
+		return false;
+	}
+	else return true;
 }
