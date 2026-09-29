@@ -34,7 +34,7 @@ FILE* abrirArchivoEditable(const char* nombreArch);
 void cargarFecha(char fecha[]);
 void crearNombreArchivoComanda(char nArchivo[]);
 FILE* abrirArchivoComanda();
-
+void cargarDia(FILE* fM, FILE*  fI);
 
 
 int main() {
@@ -54,16 +54,22 @@ int main() {
 	return 0;
 }
 
-FILE* abrirArchivoEditable(const char* nombreArch) {
-	FILE* fM = fopen(nombreArch, "rb+");
-	if (fM == NULL) {
-		cout << "No fue posible abrir el archivo " << nombreArch << endl;
+void cargarDia(FILE* fM, FILE* fI) {
+	FILE* fVentas = abrirArchivoComanda();
+	Comanda comandaNueva;
+	bool continuar;
+	while (true) {
+		comandaNueva = cargarVenta(fM, fI, fVentas);
+		guardarVenta(fVentas, comandaNueva);
+		cout << "Cargar otra venta? (1 = si | 0 = no)" << endl;
+		cin >> continuar;
+		if (continuar) continue;
+		else break;
 	}
-	return fM;
+	ordenarComandas(fVentas);
 }
 
-
-FILE* abrirArchivoComanda() {
+FILE* abrirArchivoComanda() {	//abrir o crear (ab)
 	char nombreArchivoComanda[24];
 	crearNombreArchivoComanda(nombreArchivoComanda);
 	FILE* fC = fopen(nombreArchivoComanda, "ab");
@@ -106,4 +112,12 @@ bool verificarAperturaDeArchivo(FILE* f, string nombre) {
 		return false;
 	}
 	else return true;
+}
+
+FILE* abrirArchivoEditable(const char* nombreArch) {
+	FILE* fM = fopen(nombreArch, "rb+");
+	if (fM == NULL) {
+		cout << "No fue posible abrir el archivo " << nombreArch << endl;
+	}
+	return fM;
 }
