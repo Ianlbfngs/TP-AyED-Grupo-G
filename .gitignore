@@ -8,3 +8,5 @@ build/
 /*.dat
 .claude/
 .vs/
+*.json
+asd*
