@@ -16,7 +16,7 @@ struct Mozo {
 };
 struct Comanda {
 	int idMozo;
-	int CodigoProducto;
+	int codigoProducto;
 	int cantidad;
 	float comision;
 };
@@ -35,6 +35,7 @@ void cargarFecha(char fecha[]);
 void crearNombreArchivoComanda(char nArchivo[]);
 FILE* abrirArchivoComanda();
 void cargarDia(FILE* fM, FILE*  fI);
+bool guardarVenta(FILE* fV, Comanda comanda);
 
 
 int main() {
@@ -54,19 +55,48 @@ int main() {
 	return 0;
 }
 
+bool guardarVenta(FILE* fV, Comanda comanda) {
+	if (fwrite(&comanda, sizeof(Comanda), 1, fV) == 1) {
+		cout << "Venta agregada correctamente" << endl;
+		return true;
+	}
+	else {
+		cout << "No fue posible agregar la venta" << endl;
+		return false;
+	}
+}
+
+Comanda cargarVenta(Mozo m,Producto p, FILE* fV) {
+	Comanda comandaN;
+	comandaN.idMozo = m.idMozo;
+	comandaN.codigoProducto = p.codigo;
+	cout << "Ingrese la cantidad de " << p.descripcion << endl;
+	cin >> comandaN.cantidad;
+	comandaN.comision = TASA_COMISION * (comandaN.cantidad * p.precio);
+	return comandaN;
+}
+
 void cargarDia(FILE* fM, FILE* fI) {
 	FILE* fVentas = abrirArchivoComanda();
 	Comanda comandaNueva;
+	Mozo mozoAux;
+	Producto productoAux;
 	bool continuar;
 	while (true) {
-		comandaNueva = cargarVenta(fM, fI, fVentas);
-		guardarVenta(fVentas, comandaNueva);
+		mozoAux = conseguirMozo(fM);
+		productoAux = conseguirProducto(fI);
+		comandaNueva = cargarVenta(mozoAux, productoAux, fVentas);
+		if (guardarVenta(fVentas, comandaNueva)) {
+			actualizarStock(fI, comandaNueva);
+			actualizarComisionMozo(fM, comandaNueva);
+		}
 		cout << "Cargar otra venta? (1 = si | 0 = no)" << endl;
 		cin >> continuar;
 		if (continuar) continue;
 		else break;
 	}
 	ordenarComandas(fVentas);
+	fclose(fVentas);
 }
 
 FILE* abrirArchivoComanda() {	//abrir o crear (ab)
