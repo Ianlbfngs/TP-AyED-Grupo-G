@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdio>
 using namespace std;
 
 struct Producto {
@@ -30,14 +31,6 @@ const char nombreArchInventario[15] = "inventario.dat";
 //comandas_dd-mm-aaaa.dat
 //comandas_semana_sX_mm.dat
 
-bool verificarAperturaDeArchivo(FILE* f, string nombre);
-FILE* abrirArchivoEditable(const char* nombreArch);
-void cargarFecha(char fecha[]);
-void crearNombreArchivoComanda(char nArchivo[]);
-FILE* abrirArchivoComanda();
-void cargarDia(FILE* fM, FILE*  fI);
-bool guardarVenta(FILE* fV, Comanda comanda);
-
 
 int main() {
 	FILE* fMozos = abrirArchivoEditable(nombreArchMozos);
@@ -67,52 +60,33 @@ bool guardarVenta(FILE* fV, Comanda comanda) {
 	}
 }
 
-bool buscarMozo(FILE* fM, Mozo &m) {	//busqueda PUP, con el mozo como parametro x ref.
-	int idMozo;
-	bool cancelarBusqueda;
-	bool encontrado = false;
-
-	while (!encontrado) {
-
-		cout << "Ingrese el id del mozo buscado o -1 para cancelar la busqueda" << endl;
-		cin >> idMozo;
-
-		if (idMozo == -1) {
-
-			cout << "Cancelar la busqueda de mozo finalizara la carga de las ventas del dia" << endl;
-			cout << "Proceder? (1 = si | 0 = no)" << endl;
-			cin >> cancelarBusqueda;
-
-			if (cancelarBusqueda) return false; //busqueda de mozo cancelada
-			else continue;
-
-		}
-
-		long pos = idMozo;
-		fseek(fM, pos * sizeof(Mozo), SEEK_SET);
-		encontrado = fread(&m, sizeof(Mozo), 1, fM);	//1 encontrado | 0 no encontrado
-		if (!encontrado) cout << "El mozo con el id: " << idMozo << ", no fue encontrado" << endl;
-	}
-	return true; //mozo encontrado
+void buscarMozo(FILE* fM, Mozo& m,int idMozo ) {	//busqueda PUP, con el id/pos ya conocido
+	long pos = idMozo;
+	fseek(fM, pos * sizeof(Mozo), SEEK_SET);
+	fread(&m, sizeof(Mozo), 1, fM);
 }
 
+long buscarMozo(FILE* fM, Mozo &m) {	//busqueda PUP, con el mozo como parametro x ref.
+	int idMozo;
+	bool encontrado = false;
+
+	cout << "Ingrese el id del mozo buscado" << endl;
+	cin >> idMozo;
+
+	fseek(fM, idMozo * sizeof(Mozo), SEEK_SET);
+	encontrado = fread(&m, sizeof(Mozo), 1, fM);	//1 encontrado | 0 no encontrado
+	if (!encontrado) {
+		cout << "El mozo con el id: " << idMozo << ", no fue encontrado" << endl;
+		return -1;
+	}
+	
+	return idMozo; //mozo encontrado
+}
+
+
 bool loginMozo(Mozo m) {
-	Mozo mozo;
 	char passIngresada[20];
 
-	while (true) {
-		cout << "Ingrese la contraseña del mozo con id " << mozo.idMozo <<" o -1 para cancelar el login"<< endl;
-		cin >> passIngresada;
-		if (passIngresada[0] == -1) return false; //login cancelado
-		for (int i = 0;i < 20;i++) {
-			if (mozo.password[i] - K != passIngresada[i]) {
-				cout << "Contrasena incorrecta" << endl;
-				continue; //discrepancia -> vuelve a pedir la contra
-			}
-			else break;	//contras iguales -> sale del loop
-		}
-	}
-	return true;	//login exitoso
 }
 
 void cargarVenta(Mozo m,Producto p, Comanda &cN) {
@@ -124,7 +98,25 @@ void cargarVenta(Mozo m,Producto p, Comanda &cN) {
 	
 }
 
-long buscarProducto(FILE* fI, Producto p) { //busqueda binaria, pq estan ordenados pero faltan algunos ids
+long buscarProducto(FILE* fI, Producto &p, int codigoBuscado) { //busqueda binaria de producto, con el codigo buscado como param.
+
+	fseek(fI, 0, SEEK_END);
+	long n = ftell(fI) / sizeof(Producto);
+	long pri = 0;
+	long ult = n - 1;
+	long pos = -1;
+	while (pri <= ult && pos == -1) {
+		long med = (pri + ult) / 2;
+		fseek(fI, med * sizeof(Producto), SEEK_SET);
+		fread(&p, sizeof(Producto), 1, fI);
+		if (p.codigo == codigoBuscado) pos = med;
+		else if (codigoBuscado > p.codigo) pri = med + 1;
+		else ult = med - 1;
+	}
+	return pos;
+}
+
+long buscarProducto(FILE* fI, Producto &p) { //busqueda binaria de producto
 	int codigoBuscado;
 
 	cout << "Ingrese el codigo del producto" << endl;
@@ -146,6 +138,70 @@ long buscarProducto(FILE* fI, Producto p) { //busqueda binaria, pq estan ordenad
 	return pos;
 }
 
+void actualizarStock(FILE* fI, Comanda c) {
+	Producto producto;
+	long pos = buscarProducto(fI, producto, c.codigoProducto);
+	if (pos == -1) {	//nunca va a llegar aca
+		cout << "Producto no encontrado" << endl;
+		return;
+	}
+	producto.stockActual -= c.cantidad;
+	fseek(fI, pos * sizeof(Producto), SEEK_SET);
+	fwrite(&producto, sizeof(Producto), 1, fI);
+	
+}
+
+void actualizarComisionMozo(FILE* fM, Comanda c) {
+	Mozo mozo;
+	buscarMozo(fM, mozo, c.idMozo);
+	mozo.totalComision += c.comision;
+	fseek(fM, mozo.idMozo * sizeof(Mozo), SEEK_SET);
+	fwrite(&mozo, sizeof(Mozo), 1, fM);
+}
+
+bool placeholder(FILE* fM, Mozo &m) { 
+	bool opcion; 
+	while (buscarMozo(fM, m) == -1) {
+		cout << "Mozo no encontrado" << endl;
+		cout << "Seleccione una opcion" << endl;
+		cout << "0. Terminar carga del dia" << endl;
+		cout << "1. Volver a buscar un mozo" << endl;
+		cin >> opcion;
+		if (!opcion) return true; //se termina la carga del dia
+		//opcion en !true (false) -> sigue el while
+	}	
+	return false; //mozo encontrado
+}
+
+bool placeholder2(Mozo m) {
+	bool opcion;
+	while (!loginMozo(m)) {
+		cout << "Login faillido" << endl;
+		cout << "Seleccione una opcion" << endl;
+		cout << "0. Cambiar mozo" << endl;
+		cout << "1. Volver a intenar iniciar sesion" << endl; 
+		cin >> opcion;
+		if (!opcion) return true; //se cancela el login 
+		//opcion en !true (false) -> sigue el while
+	}
+
+	return false; //login exitoso
+}
+
+bool placeholder3(FILE* fI, Producto &p) {
+	bool opcion;
+	while (buscarProducto(fI, p) == -1) {
+		cout << "Producto no encontrado" << endl;
+		cout << "Seleccione una opcion" << endl;
+		cout << "0. Cancelar busqueda de producto" << endl;
+		cout << "1. Buscar otro producto" << endl; 
+		cin >> opcion;
+		if (!opcion) return true; //se cancela la busqueda 
+		//opcion en !true (false) -> sigue el while
+	}
+	return false; //producto encontrado
+}
+
 void cargarDia(FILE* fM, FILE* fI) {	//fM -> fMozos | fI -> fInventario
 	FILE* fC = abrirArchivoComanda();	//fC -> fComandas
 	if (!verificarAperturaDeArchivo(fC,"de comandas del dia solicitado")) return; //vuelve al main y se le pregunta al usuario si quiere cargar otro dia
@@ -154,17 +210,11 @@ void cargarDia(FILE* fM, FILE* fI) {	//fM -> fMozos | fI -> fInventario
 	Mozo mozoAux;
 	Producto productoAux;
 	bool continuar = true;
-
 	while (continuar) {
-		if (!buscarMozo(fM, mozoAux)) {
-			cout << "Busqueda de mozo cancelada" << endl;
-			break;	//sale del while 
-		}
-		if (!loginMozo(mozoAux)) {
-			cout << "Login cancelado" << endl; 
-			continue;	//itera y vuelve a pedir mozo
-		}
-		while (buscarProducto(fI, productoAux) == -1) cout << "Producto no encontrado" << endl;
+		if (placeholder(fM, mozoAux)) break;	//se termina la carga del dia == sale del while
+		if (placeholder2(mozoAux)) continue; //se cancela el login == itera el while (y vuelve a 'buscar mozo')
+		if (placeholder3(fI,productoAux)) continue; //se cancela la busqueda de prod == itera el while (y vuelve a 'buscar mozo')
+
 		cargarVenta(mozoAux, productoAux,comandaNueva);
 
 		if (guardarVenta(fC, comandaNueva)) {
@@ -174,12 +224,12 @@ void cargarDia(FILE* fM, FILE* fI) {	//fM -> fMozos | fI -> fInventario
 		cout << "Cargar otra venta? (1 = si | 0 = no)" << endl;
 		cin >> continuar; //true -> sigue el while | false -> sale
 	}
-	ordenarComandas(fC);
+	//ordenarComandas(fC);
 	fclose(fC);
 }
 
 FILE* abrirArchivoComanda() {	//abrir o crear (ab)
-	char nombreArchivoComanda[24];
+	char nombreArchivoComanda[24]="comandas_";
 	crearNombreArchivoComanda(nombreArchivoComanda); //el usuario carga el dia y se completa el array de chars para el nombre del .dat
 	//verifica si es NULL en "cargarDia()"
 	return fopen(nombreArchivoComanda, "ab");	//abre el arch con el nombre armado
@@ -192,16 +242,11 @@ void cargarFecha(char fecha[]) {
 }
 
 void crearNombreArchivoComanda(char nArchivo[]) {
-	char comandas[10] = "comandas_";
 	char fecha[11];
 	char extension[5] = ".dat";
 
 	cargarFecha(fecha);
 	int j = 0;
-	for (int i = 0;i < 9;i++) {
-		nArchivo[i] = comandas[j++];
-	}
-	j = 0;
 	for (int i = 9;i < 19;i++) {
 		nArchivo[i] = fecha[j++];
 	}
@@ -209,6 +254,7 @@ void crearNombreArchivoComanda(char nArchivo[]) {
 	for (int i = 19;i < 23;i++) {
 		nArchivo[i] = extension[j++];
 	}
+	nArchivo[23] = '\0';
 	return;
 }
 
