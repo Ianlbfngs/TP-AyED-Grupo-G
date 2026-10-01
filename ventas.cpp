@@ -22,7 +22,8 @@ struct Comanda {
 };
 
 const float TASA_COMISION = 0.10f; //10% de lo vendido
-
+//constante de corrimiento de contraseñas
+const int K = 10; //cambiar?
 //nombres de archivos
 const char nombreArchMozos[10] = "mozos.dat";
 const char nombreArchInventario[15] = "inventario.dat";
@@ -66,6 +67,54 @@ bool guardarVenta(FILE* fV, Comanda comanda) {
 	}
 }
 
+bool buscarMozo(FILE* fM, Mozo &m) {	//busqueda PUP
+	int idMozo;
+	bool cancelarBusqueda;
+	bool encontrado = false;
+
+	while (!encontrado) {
+
+		cout << "Ingrese el id del mozo buscado o -1 para cancelar la busqueda" << endl;
+		cin >> idMozo;
+
+		if (idMozo == -1) {
+
+			cout << "Cancelar la busqueda de mozo finalizara la carga de las ventas del dia" << endl;
+			cout << "Proceder? (1 = si | 0 = no)" << endl;
+			cin >> cancelarBusqueda;
+
+			if (cancelarBusqueda) return false; //busqueda de mozo cancelada
+			else continue;
+
+		}
+
+		long pos = idMozo;
+		fseek(fM, pos * sizeof(Mozo), SEEK_SET);
+		encontrado = fread(&m, sizeof(Mozo), 1, fM);	//1 encontrado | 0 no encontrado
+		if (!encontrado) cout << "El mozo con el id: " << idMozo << ", no fue encontrado" << endl;
+	}
+	return true; //mozo encontrado
+}
+
+bool loginMozo(Mozo m) {
+	Mozo mozo;
+	char passIngresada[20];
+
+	while (true) {
+		cout << "Ingrese la contraseña del mozo con id " << mozo.idMozo <<" o -1 para cancelar el login"<< endl;
+		cin >> passIngresada;
+		if (passIngresada[0] == -1) return false; //login cancelado
+		for (int i = 0;i < 20;i++) {
+			if (mozo.password[i] - K != passIngresada[i]) {
+				cout << "Contrasena incorrecta" << endl;
+				continue; //discrepancia -> vuelve a pedir la contra
+			}
+			else break;	//contras iguales -> sale del loop
+		}
+	}
+	return true;	//login exitoso
+}
+
 Comanda cargarVenta(Mozo m,Producto p, FILE* fV) {
 	Comanda comandaN;
 	comandaN.idMozo = m.idMozo;
@@ -76,37 +125,44 @@ Comanda cargarVenta(Mozo m,Producto p, FILE* fV) {
 	return comandaN;
 }
 
-void cargarDia(FILE* fM, FILE* fI) {
-	FILE* fVentas = abrirArchivoComanda();
+void cargarDia(FILE* fM, FILE* fI) {	//fM -> fMozos | fI -> fInventario
+	FILE* fC = abrirArchivoComanda();	//fC -> fComandas
+	if (!verificarAperturaDeArchivo(fC,"de comandas del dia solicitado")) return; //vuelve al main y se le pregunta al usuario si quiere cargar otro dia.
+
 	Comanda comandaNueva;
 	Mozo mozoAux;
 	Producto productoAux;
-	bool continuar;
-	while (true) {
-		mozoAux = conseguirMozo(fM);
+	bool continuar = true;
+
+	while (continuar) {
+		if (!buscarMozo(fM, mozoAux)) {
+			cout << "Busqueda de mozo cancelada" << endl;
+			break; //sale del while 
+		}
+		if (!loginMozo(mozoAux)) {
+			cout << "Login cancelado" << endl; 
+			continue;//itera y vuelve a pedir mozo
+		}
+
 		productoAux = conseguirProducto(fI);
-		comandaNueva = cargarVenta(mozoAux, productoAux, fVentas);
-		if (guardarVenta(fVentas, comandaNueva)) {
+		comandaNueva = cargarVenta(mozoAux, productoAux, fC);
+
+		if (guardarVenta(fC, comandaNueva)) {
 			actualizarStock(fI, comandaNueva);
 			actualizarComisionMozo(fM, comandaNueva);
 		}
 		cout << "Cargar otra venta? (1 = si | 0 = no)" << endl;
-		cin >> continuar;
-		if (continuar) continue;
-		else break;
+		cin >> continuar; //true -> sigue el while | false -> sale
 	}
-	ordenarComandas(fVentas);
-	fclose(fVentas);
+	ordenarComandas(fC);
+	fclose(fC);
 }
 
 FILE* abrirArchivoComanda() {	//abrir o crear (ab)
 	char nombreArchivoComanda[24];
-	crearNombreArchivoComanda(nombreArchivoComanda);
-	FILE* fC = fopen(nombreArchivoComanda, "ab");
-	if (fC == NULL) {
-		cout << "Error al crear/abrir el archivo " << nombreArchivoComanda << endl;
-	}
-	return fC;
+	crearNombreArchivoComanda(nombreArchivoComanda); //el usuario carga el dia y se completa el array de chars para el nombre del .dat
+	//verifica si es NULL en "cargarDia()"
+	return fopen(nombreArchivoComanda, "ab");	//abre el arch con el nombre armado
 }
 
 void cargarFecha(char fecha[]) {
@@ -146,8 +202,6 @@ bool verificarAperturaDeArchivo(FILE* f, string nombre) {
 
 FILE* abrirArchivoEditable(const char* nombreArch) {
 	FILE* fM = fopen(nombreArch, "rb+");
-	if (fM == NULL) {
-		cout << "No fue posible abrir el archivo " << nombreArch << endl;
-	}
+	verificarAperturaDeArchivo(fM, nombreArch);
 	return fM;
 }
