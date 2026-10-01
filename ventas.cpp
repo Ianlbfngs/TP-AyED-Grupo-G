@@ -67,7 +67,7 @@ bool guardarVenta(FILE* fV, Comanda comanda) {
 	}
 }
 
-bool buscarMozo(FILE* fM, Mozo &m) {	//busqueda PUP
+bool buscarMozo(FILE* fM, Mozo &m) {	//busqueda PUP, con el mozo como parametro x ref.
 	int idMozo;
 	bool cancelarBusqueda;
 	bool encontrado = false;
@@ -115,19 +115,40 @@ bool loginMozo(Mozo m) {
 	return true;	//login exitoso
 }
 
-Comanda cargarVenta(Mozo m,Producto p, FILE* fV) {
-	Comanda comandaN;
-	comandaN.idMozo = m.idMozo;
-	comandaN.codigoProducto = p.codigo;
+void cargarVenta(Mozo m,Producto p, Comanda &cN) {
+	cN.idMozo = m.idMozo;
+	cN.codigoProducto = p.codigo;
 	cout << "Ingrese la cantidad de " << p.descripcion << endl;
-	cin >> comandaN.cantidad;
-	comandaN.comision = TASA_COMISION * (comandaN.cantidad * p.precio);
-	return comandaN;
+	cin >> cN.cantidad;
+	cN.comision = TASA_COMISION * (cN.cantidad * p.precio);
+	
+}
+
+long buscarProducto(FILE* fI, Producto p) { //busqueda binaria, pq estan ordenados pero faltan algunos ids
+	int codigoBuscado;
+
+	cout << "Ingrese el codigo del producto" << endl;
+	cin >> codigoBuscado;
+
+	fseek(fI, 0, SEEK_END);
+	long n = ftell(fI) / sizeof(Producto);
+	long pri = 0;
+	long ult = n - 1;
+	long pos = -1;
+	while (pri <= ult && pos == -1) {
+		long med = (pri + ult) / 2;
+		fseek(fI, med * sizeof(Producto), SEEK_SET);
+		fread(&p, sizeof(Producto), 1, fI);
+		if (p.codigo == codigoBuscado) pos = med;
+		else if (codigoBuscado > p.codigo) pri = med + 1;
+		else ult = med - 1;
+	}
+	return pos;
 }
 
 void cargarDia(FILE* fM, FILE* fI) {	//fM -> fMozos | fI -> fInventario
 	FILE* fC = abrirArchivoComanda();	//fC -> fComandas
-	if (!verificarAperturaDeArchivo(fC,"de comandas del dia solicitado")) return; //vuelve al main y se le pregunta al usuario si quiere cargar otro dia.
+	if (!verificarAperturaDeArchivo(fC,"de comandas del dia solicitado")) return; //vuelve al main y se le pregunta al usuario si quiere cargar otro dia
 
 	Comanda comandaNueva;
 	Mozo mozoAux;
@@ -137,15 +158,14 @@ void cargarDia(FILE* fM, FILE* fI) {	//fM -> fMozos | fI -> fInventario
 	while (continuar) {
 		if (!buscarMozo(fM, mozoAux)) {
 			cout << "Busqueda de mozo cancelada" << endl;
-			break; //sale del while 
+			break;	//sale del while 
 		}
 		if (!loginMozo(mozoAux)) {
 			cout << "Login cancelado" << endl; 
-			continue;//itera y vuelve a pedir mozo
+			continue;	//itera y vuelve a pedir mozo
 		}
-
-		productoAux = conseguirProducto(fI);
-		comandaNueva = cargarVenta(mozoAux, productoAux, fC);
+		while (buscarProducto(fI, productoAux) == -1) cout << "Producto no encontrado" << endl;
+		cargarVenta(mozoAux, productoAux,comandaNueva);
 
 		if (guardarVenta(fC, comandaNueva)) {
 			actualizarStock(fI, comandaNueva);
