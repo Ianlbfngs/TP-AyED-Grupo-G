@@ -28,7 +28,7 @@ const float TASA_COMISION = 0.10f; //10% de lo vendido
 const int K = 10; //*cambiar*
 //nombres de archivos
 const char nombreArchMozos[] = "mozos.dat";
-const char nombreArchInventario[] = "datos/inventario.dat";
+const char nombreArchInventario[] = "inventario.dat";
 //comandas_dd-mm-aaaa.dat
 
 //declaraciones
