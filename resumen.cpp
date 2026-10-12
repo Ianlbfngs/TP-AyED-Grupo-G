@@ -47,9 +47,44 @@ int main() {
     cout << '\n' << "Resumen de " << nombreArchivo << '\n';
     cout << fixed << setprecision(2);
 
-   
+    Comanda comanda;
+    bool hayComandas = false;
+    int idMozoActual = 0;
+    int productosMozo = 0;
+    float comisionMozo = 0.0f;
+    int totalProductos = 0;
 
-   
+    while (fread(&comanda, sizeof(Comanda), 1, archivo) == 1) {
+        if (!hayComandas) {
+            idMozoActual = comanda.idMozo;
+            hayComandas = true;
+        } else if (comanda.idMozo != idMozoActual) {
+            mostrarResumenMozo(idMozoActual, productosMozo, comisionMozo);
+            idMozoActual = comanda.idMozo;
+            productosMozo = 0;
+            comisionMozo = 0.0f;
+        }
+
+        productosMozo += comanda.cantidad;
+        comisionMozo += comanda.comision;
+        totalProductos += comanda.cantidad;
+    }
+
+    if (ferror(archivo)) {
+        cerr << "Ocurrio un error al leer " << nombreArchivo << ".\n";
+        fclose(archivo);
+        return 1;
+    }
+
+    if (hayComandas) {
+        mostrarResumenMozo(idMozoActual, productosMozo, comisionMozo);
+    } else {
+        cout << "La planilla semanal no contiene ventas.\n";
+    }
+
+    cout << "Total de productos vendidos por el buffet: "
+              << totalProductos << '\n';
+
     fclose(archivo);
     return 0;
 }
