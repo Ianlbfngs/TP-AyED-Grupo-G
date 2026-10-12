@@ -34,3 +34,26 @@ struct ComandaDia {
 const int K=5;
 const int MAX_MOZOS = 100;
 const int MAX_COMANDAS = 5000;
+void encriptar (const char original[], char encriptada[])
+{
+    int i = 0;
+    while (original[i] != '\0') {
+        encriptada [i] = original [i] + K;
+        i++;
+    }
+    encriptada [i]= '\0';
+
+    }
+
+    void numeroATexto(int n,char texto[]) {
+        int cant = 0 , temp = n;
+        while (temp > 0) {
+            cant++;
+            temp=temp/10;
+        }
+        texto [cant] = '\0';
+        int i = cant - 1;
+        while (n>0) {
+            texto [i] = '0' + n % 10;
+            n=n/10;
+            i--;
