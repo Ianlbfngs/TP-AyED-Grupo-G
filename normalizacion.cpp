@@ -57,3 +57,45 @@ void encriptar (const char original[], char encriptada[])
             texto [i] = '0' + n % 10;
             n=n/10;
             i--;
+    int buscarMozo (Mozo mozos [], int len, const char nombre[]){
+        int i = 0;
+        while (i<len && strcmp (mozos[i].nombre , nombre) != 0) {
+            i++;
+        }
+        if (i==len){
+            return -1;
+        } else {
+            return i;
+        }
+    }
+
+    int agregarMozo(Mozo mozos [],int& len, const char nombre[]){
+        if(len == MAX_MOZOS) {
+            return -1;
+        
+    }
+
+    Mozo nuevo;
+    nuevo.idMozo = len+1;
+    strcpy(nuevo.nombre, nombre);
+    char claveInicial[20];
+    numeroATexto(nuevo.idMozo, claveInicial);
+    encriptar(claveInicial, nuevo.password);
+    nuevo.totalComision = 0;
+    mozos[len]=nuevo;
+    len++;
+    return len - 1;
+    }
+
+    void grabarMozos (Mozo mozos[],int len){
+        FILE* f = fopen("mozos.dat", "wb");
+        if ( f==NULL) {
+            cout << "Error: no se pudo crear mozos.dat" <<endl;
+            return;
+        }
+        for (int i = 0; i < len; i++) {
+            fwrite (&mozos[i], sizeof (Mozo), 1 , f);
+        }
+        fclose(f);
+    }
+
