@@ -199,3 +199,55 @@ int grabarPlanillas(ComandaDia v[], int len) {
     return cantPlanillas;
 }
  
+int main() {
+    FILE* fHist = fopen("comandas_historicas.dat", "rb");
+    if (fHist == NULL) {
+        cout << "Error: no se pudo abrir comandas_historicas.dat" << endl;
+        return 1;
+    }
+    FILE* fInv = fopen("inventario.dat", "rb+");
+    if (fInv == NULL) {
+        cout << "Error: no se pudo abrir inventario.dat" << endl;
+        fclose(fHist);
+        return 1;
+    }
+ 
+    Mozo mozos[MAX_MOZOS];
+    int lenMozos = 0;
+    ComandaDia comandas[MAX_COMANDAS];
+    int lenComandas = 0;
+    ComandaHistorica h;
+    bool error = false;
+ 
+    while (!error && fread(&h, sizeof(ComandaHistorica), 1, fHist) == 1) {
+        int pos = buscarMozo(mozos, lenMozos, h.nombreMozo);
+        if (pos == -1) {
+            pos = agregarMozo(mozos, lenMozos, h.nombreMozo);
+        }
+        if (pos == -1 || lenComandas == MAX_COMANDAS) {
+            cout << "Error: se supero la capacidad de los vectores" << endl;
+            error = true;
+        } else {
+            mozos[pos].totalComision = mozos[pos].totalComision + h.comision;
+ 
+            strcpy(comandas[lenComandas].fecha, h.fecha);
+            comandas[lenComandas].comanda.idMozo = mozos[pos].idMozo;
+            comandas[lenComandas].comanda.codigoProducto = h.codigoProducto;
+            comandas[lenComandas].comanda.cantidad = h.cantidad;
+            comandas[lenComandas].comanda.comision = h.comision;
+            lenComandas++;
+ 
+            descontarStock(fInv, h.codigoProducto, h.cantidad);
+        }
+    }
+    fclose(fHist);
+    fclose(fInv);
+ 
+    grabarMozos(mozos, lenMozos);
+    ordenarInsercion(comandas, lenComandas);
+    int cantPlanillas = grabarPlanillas(comandas, lenComandas);
+ 
+    cout << "Normalizacion terminada: " << lenComandas << " ventas, "
+         << lenMozos << " mozos, " << cantPlanillas << " planillas diarias." << endl;
+    return 0;
+} 
