@@ -99,3 +99,44 @@ void encriptar (const char original[], char encriptada[])
         fclose(f);
     }
 
+    long buscarProducto(FILE* f, int codigo, Producto& p) {
+        fseek(f, 0, SEEK_END);
+        long n = ftell(f) / sizeof (Producto);
+        long pri = 0;
+        long ult = n - 1;
+        long pos = -1;
+        while (pri <= ult && pos == -1){
+            long med = (pri + ult) / 2;
+            fseek(f , med * sizeof (Producto), SEEK_SET);
+            if (fread(&p, sizeof(Producto), 1 , f)!=1){
+                return -1;
+            }
+            if (p.codigo == codigo){
+                pos = med;
+
+            } else if (codigo > p.codigo) {
+                pri=med+1;
+            }else {
+                ult=med - 1;
+            }
+        }
+        return pos;
+    }
+
+   void descontarStock(FILE* f, int codigo, int cantidad) {
+    Producto p;
+    long pos = buscarProducto(f, codigo, p);
+    if (pos == -1) {
+        cout << "Aviso: el producto " << codigo << " no existe en el inventario" << endl;
+        return;
+    }
+    if (p.stockActual < cantidad) {
+        cout << "Aviso: sin stock suficiente de " << p.descripcion
+             << " (habia " << p.stockActual << ", se vendieron " << cantidad << ")" << endl;
+        p.stockActual = 0;
+    } else {
+        p.stockActual = p.stockActual - cantidad;
+    }
+    fseek(f, pos * sizeof(Producto), SEEK_SET);
+    fwrite(&p, sizeof(Producto), 1, f);
+}
