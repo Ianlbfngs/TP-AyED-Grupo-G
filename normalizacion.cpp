@@ -140,3 +140,22 @@ void encriptar (const char original[], char encriptada[])
     fseek(f, pos * sizeof(Producto), SEEK_SET);
     fwrite(&p, sizeof(Producto), 1, f);
 }
+bool vaAntes(ComandaDia a, ComandaDia b) {
+    int cmp = strcmp(a.fecha, b.fecha);
+    if (cmp != 0) {
+        return cmp < 0;
+    }
+    return a.comanda.idMozo < b.comanda.idMozo;
+}
+ 
+void ordenarInsercion(ComandaDia v[], int len) {
+    for (int i = 1; i < len; i++) {
+        ComandaDia clave = v[i];
+        int j = i - 1;
+        while (j >= 0 && vaAntes(clave, v[j])) {
+            v[j + 1] = v[j];
+            j--;
+        }
+        v[j + 1] = clave;
+    }
+}
