@@ -159,3 +159,43 @@ void ordenarInsercion(ComandaDia v[], int len) {
         v[j + 1] = clave;
     }
 }
+void copiarAlFinal(char destino[], int& pos, const char origen[]) {
+    int j = 0;
+    while (origen[j] != '\0') {
+        destino[pos] = origen[j];
+        pos++;
+        j++;
+    }
+}
+ 
+void armarNombreArchivo(const char fecha[], char nombre[]) {
+    int pos = 0;
+    copiarAlFinal(nombre, pos, "comandas_");
+    copiarAlFinal(nombre, pos, fecha);
+    copiarAlFinal(nombre, pos, ".dat");
+    nombre[pos] = '\0';
+}
+ 
+int grabarPlanillas(ComandaDia v[], int len) {
+    int cantPlanillas = 0;
+    int i = 0;
+    while (i < len) {
+        char fechaActual[11];
+        strcpy(fechaActual, v[i].fecha);
+        char nombreArchivo[40];
+        armarNombreArchivo(fechaActual, nombreArchivo);
+        FILE* f = fopen(nombreArchivo, "wb");
+        if (f == NULL) {
+            cout << "Error: no se pudo crear " << nombreArchivo << endl;
+            return cantPlanillas;
+        }
+        while (i < len && strcmp(v[i].fecha, fechaActual) == 0) {
+            fwrite(&v[i].comanda, sizeof(Comanda), 1, f);
+            i++;
+        }
+        fclose(f);
+        cantPlanillas++;
+    }
+    return cantPlanillas;
+}
+ 
