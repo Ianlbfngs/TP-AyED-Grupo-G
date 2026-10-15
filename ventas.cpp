@@ -148,11 +148,14 @@ bool buscarProductoCancelacion(FILE* fI, Producto& p) {
 	return false; //producto encontrado
 }
 
-FILE* abrirArchivoComanda() {	//abrir o crear (ab)
+FILE* abrirArchivoComanda() {	
 	char nombreArchivoComanda[24]="comandas_";
 	crearNombreArchivoComanda(nombreArchivoComanda); //el usuario carga el dia y se completa el array de chars para el nombre del .dat
 	//verifica si es NULL en "cargarDia()"
-	return fopen(nombreArchivoComanda, "ab+");	//abre el arch con el nombre armado
+	FILE* fAux = fopen(nombreArchivoComanda,"ab"); //lo crea (por si no existe)
+	if(fAux == NULL) return NULL;
+	fclose(fAux);
+	return fopen(nombreArchivoComanda, "rb+");	//abre el arch con el nombre armado
 }
 
 void cargarFecha(char fecha[]) {
@@ -190,6 +193,7 @@ FILE* abrirArchivoEditable(const char* nombreArch) {
 }
 
 bool guardarVenta(FILE* fV, Comanda comanda) {
+	fseek(fV, 0,SEEK_END);
 	if (fwrite(&comanda, sizeof(Comanda), 1, fV) == 1) {
 		cout << "Venta agregada correctamente" << endl;
 		return true;
@@ -201,7 +205,7 @@ bool guardarVenta(FILE* fV, Comanda comanda) {
 }
 
 void buscarMozo(FILE* fM, Mozo& m, int idMozo) {	//busqueda PUP, con el id/pos ya conocido
-	long pos = idMozo;
+	long pos = idMozo -1;
 	fseek(fM, pos * sizeof(Mozo), SEEK_SET);
 	fread(&m, sizeof(Mozo), 1, fM);
 }
@@ -246,8 +250,9 @@ void cargarVenta(Mozo m, Producto p, Comanda& cN) {
 	cN.codigoProducto = p.codigo;
 	cout << "Ingrese la cantidad de " << p.descripcion << endl;
 	cin >> cN.cantidad;
-	while (p.stockActual < cN.cantidad) {
-		cout << "No hay suficiente stock del producto: " << p.descripcion << " - stock actual: " << p.stockActual << endl;
+	while (cN.cantidad <=0 || p.stockActual < cN.cantidad) {
+		if(cN.cantidad<=0) cout<<"La cantidad debe ser mayor a 0"<<endl;
+		else cout << "No hay suficiente stock del producto: " << p.descripcion << " - stock actual: " << p.stockActual << endl;
 		cout << "Vuelva a ingresar una cantidad valida" << endl;
 		cin >> cN.cantidad;
 	}
@@ -308,7 +313,7 @@ void actualizarComisionMozo(FILE* fM, Comanda c) {
 	Mozo mozo;
 	buscarMozo(fM, mozo, c.idMozo);
 	mozo.totalComision += c.comision;
-	fseek(fM, mozo.idMozo * sizeof(Mozo), SEEK_SET);
+	fseek(fM, (mozo.idMozo-1) * sizeof(Mozo), SEEK_SET);
 	fwrite(&mozo, sizeof(Mozo), 1, fM);
 }
 
