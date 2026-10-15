@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <cstdio>
 using namespace std;
@@ -57,17 +58,17 @@ void cargarComanda(FILE* fM, FILE* fI);
 int main() {
 	FILE* fMozos = abrirArchivoEditable(nombreArchMozos);
 	if (!verificarAperturaDeArchivo(fMozos, nombreArchMozos)) {	//no se puede abrir mozos --> no se puede seguir
-		return -1;
+		return 1;
 	}
 	FILE* fInventario = abrirArchivoEditable(nombreArchInventario);
 	if (!verificarAperturaDeArchivo(fInventario, nombreArchInventario)) {	//no se puede abrir inventario --> no se puede seguir
 		fclose(fMozos);
-		return -1;
+		return 1;
 	}
 	bool cargarOtroDia;
 	while (true) {
 		cargarComanda(fMozos, fInventario);
-		cout << "Cargar las ventas de otro dia? (1 = si | 0 = no)";
+		cout << "Cargar las ventas de otro dia? (1 = si | 0 = no)" << endl;;
 		cin >> cargarOtroDia;
 		if (cargarOtroDia) continue;
 		else break;
@@ -147,11 +148,14 @@ bool buscarProductoCancelacion(FILE* fI, Producto& p) {
 	return false; //producto encontrado
 }
 
-FILE* abrirArchivoComanda() {	//abrir o crear (ab)
+FILE* abrirArchivoComanda() {	
 	char nombreArchivoComanda[24]="comandas_";
 	crearNombreArchivoComanda(nombreArchivoComanda); //el usuario carga el dia y se completa el array de chars para el nombre del .dat
 	//verifica si es NULL en "cargarDia()"
-	return fopen(nombreArchivoComanda, "ab+");	//abre el arch con el nombre armado
+	FILE* fAux = fopen(nombreArchivoComanda,"ab"); //lo crea (por si no existe)
+	if(fAux == NULL) return NULL;
+	fclose(fAux);
+	return fopen(nombreArchivoComanda, "rb+");	//abre el arch con el nombre armado
 }
 
 void cargarFecha(char fecha[]) {
@@ -189,6 +193,7 @@ FILE* abrirArchivoEditable(const char* nombreArch) {
 }
 
 bool guardarVenta(FILE* fV, Comanda comanda) {
+	fseek(fV, 0,SEEK_END);
 	if (fwrite(&comanda, sizeof(Comanda), 1, fV) == 1) {
 		cout << "Venta agregada correctamente" << endl;
 		return true;
@@ -200,7 +205,7 @@ bool guardarVenta(FILE* fV, Comanda comanda) {
 }
 
 void buscarMozo(FILE* fM, Mozo& m, int idMozo) {	//busqueda PUP, con el id/pos ya conocido
-	long pos = idMozo;
+	long pos = idMozo -1;
 	fseek(fM, pos * sizeof(Mozo), SEEK_SET);
 	fread(&m, sizeof(Mozo), 1, fM);
 }
@@ -208,11 +213,15 @@ void buscarMozo(FILE* fM, Mozo& m, int idMozo) {	//busqueda PUP, con el id/pos y
 long buscarMozo(FILE* fM, Mozo& m) {	//busqueda PUP, con el mozo como parametro x ref.
 	int idMozo;
 	bool encontrado = false;
-
 	cout << "Ingrese el id del mozo buscado" << endl;
 	cin >> idMozo;
+	while (idMozo <= 0) {
+		cout << "Id: " << idMozo << " invalido" << endl;
+		cout << "Vuelva a ingresar el id del mozo buscado" << endl;
+		cin >> idMozo;
+	}
 
-	fseek(fM, idMozo * sizeof(Mozo), SEEK_SET);
+	fseek(fM, (idMozo-1) * sizeof(Mozo), SEEK_SET);
 	encontrado = fread(&m, sizeof(Mozo), 1, fM);	//1 encontrado | 0 no encontrado
 	if (!encontrado) {
 		cout << "El mozo con el id: " << idMozo << ", no fue encontrado" << endl;
@@ -225,12 +234,12 @@ long buscarMozo(FILE* fM, Mozo& m) {	//busqueda PUP, con el mozo como parametro 
 
 bool loginMozo(Mozo m) {
 	char passIngresada[20];
-	cout << "Ingrese la contraseña del mozo con id: " << m.idMozo << endl;
+	cout << "Ingrese la contrasena del mozo con id: " << m.idMozo << endl;
 	cin.ignore();
 	cin.getline(passIngresada, 20);
 	for (int i = 0;i < 20;i++) {
 		if (passIngresada[i] == '\0' && m.password[i] == '\0') return true; //no hubo discrepancia y ambas contras llegaron al final (sino compara basura con basura) --> login
-		if (passIngresada[i] - K != m.password[i]) return false;	//hay discrepancia -> !login 
+		if (passIngresada[i]+K != m.password[i]) return false;	//hay discrepancia -> !login 
 	}
 	return true; //no hubo discrepancia -> login 
 
@@ -241,6 +250,12 @@ void cargarVenta(Mozo m, Producto p, Comanda& cN) {
 	cN.codigoProducto = p.codigo;
 	cout << "Ingrese la cantidad de " << p.descripcion << endl;
 	cin >> cN.cantidad;
+	while (cN.cantidad <=0 || p.stockActual < cN.cantidad) {
+		if(cN.cantidad<=0) cout<<"La cantidad debe ser mayor a 0"<<endl;
+		else cout << "No hay suficiente stock del producto: " << p.descripcion << " - stock actual: " << p.stockActual << endl;
+		cout << "Vuelva a ingresar una cantidad valida" << endl;
+		cin >> cN.cantidad;
+	}
 	cN.comision = TASA_COMISION * (cN.cantidad * p.precio);
 
 }
@@ -288,10 +303,6 @@ long buscarProducto(FILE* fI, Producto& p) { //busqueda binaria de producto
 void actualizarStock(FILE* fI, Comanda c) {
 	Producto producto;
 	long pos = buscarProducto(fI, producto, c.codigoProducto);
-	if (pos == -1) {	//nunca va a llegar aca
-		cout << "Producto no encontrado" << endl;
-		return;
-	}
 	producto.stockActual -= c.cantidad;
 	fseek(fI, pos * sizeof(Producto), SEEK_SET);
 	fwrite(&producto, sizeof(Producto), 1, fI);
@@ -302,7 +313,7 @@ void actualizarComisionMozo(FILE* fM, Comanda c) {
 	Mozo mozo;
 	buscarMozo(fM, mozo, c.idMozo);
 	mozo.totalComision += c.comision;
-	fseek(fM, mozo.idMozo * sizeof(Mozo), SEEK_SET);
+	fseek(fM, (mozo.idMozo-1) * sizeof(Mozo), SEEK_SET);
 	fwrite(&mozo, sizeof(Mozo), 1, fM);
 }
 
