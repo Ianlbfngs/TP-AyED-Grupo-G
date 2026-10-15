@@ -26,7 +26,7 @@ struct Comanda {
 //Variables globales
 const float TASA_COMISION = 0.10f; //10% de lo vendido
 //constante de corrimiento de contraseñas
-const int K = 10; //*cambiar*
+const int K = 5; 
 //nombres de archivos
 const char nombreArchMozos[] = "mozos.dat";
 const char nombreArchInventario[] = "inventario.dat";
