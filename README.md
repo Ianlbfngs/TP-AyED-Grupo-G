@@ -6,10 +6,10 @@ unidad de **archivos binarios en C/C++**.
 > **Grupo:** G
 > 
 > **Integrantes:**
->- Agüero Gonzalo - GonzaloAjguero
->- Badino Ian - Ianlbfngs
->- La Sala Tiago - tlasala
->- Marrone Vichi Salvador - salvimarronevichi-hue
+>- Agüero Gonzalo - GonzaloAjguero - normalizacion.cpp
+>- Badino Ian - Ianlbfngs - ventas.cpp
+>- La Sala Tiago - tlasala - cierre.cpp
+>- Marrone Vichi Salvador - salvimarronevichi-hue - resumen.cpp
 
 La consigna completa está en **`enunciado.pdf`**. Leela antes de arrancar: el
 cliente (Alberto) cuenta su problema a su manera y ustedes tienen que descubrir

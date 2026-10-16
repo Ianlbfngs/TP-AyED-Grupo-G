@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <cstdio>
 #include <cstring>
@@ -57,6 +58,8 @@ void encriptar (const char original[], char encriptada[])
             texto [i] = '0' + n % 10;
             n=n/10;
             i--;
+        }
+    }
     int buscarMozo (Mozo mozos [], int len, const char nombre[]){
         int i = 0;
         while (i<len && strcmp (mozos[i].nombre , nombre) != 0) {

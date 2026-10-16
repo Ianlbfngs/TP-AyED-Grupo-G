@@ -26,7 +26,7 @@ struct Comanda {
 //Variables globales
 const float TASA_COMISION = 0.10f; //10% de lo vendido
 //constante de corrimiento de contraseñas
-const int K = 5; 
+const int K = 5;
 //nombres de archivos
 const char nombreArchMozos[] = "mozos.dat";
 const char nombreArchInventario[] = "inventario.dat";
@@ -148,19 +148,20 @@ bool buscarProductoCancelacion(FILE* fI, Producto& p) {
 	return false; //producto encontrado
 }
 
-FILE* abrirArchivoComanda() {	
-	char nombreArchivoComanda[24]="comandas_";
+FILE* abrirArchivoComanda() {
+	char nombreArchivoComanda[24] = "comandas_";
 	crearNombreArchivoComanda(nombreArchivoComanda); //el usuario carga el dia y se completa el array de chars para el nombre del .dat
 	//verifica si es NULL en "cargarDia()"
-	FILE* fAux = fopen(nombreArchivoComanda,"ab"); //lo crea (por si no existe)
-	if(fAux == NULL) return NULL;
+	FILE* fAux = fopen(nombreArchivoComanda, "ab"); //lo crea (por si no existe)
+	if (fAux == NULL) return NULL;
 	fclose(fAux);
 	return fopen(nombreArchivoComanda, "rb+");	//abre el arch con el nombre armado
 }
 
 void cargarFecha(char fecha[]) {
 	cout << "Ingrese la fecha (formato dd-MM-aaaa)" << endl;
-	cin >> fecha;
+	cin.ignore();
+	cin.getline(fecha,11);
 }
 
 void crearNombreArchivoComanda(char nArchivo[]) {
@@ -193,7 +194,7 @@ FILE* abrirArchivoEditable(const char* nombreArch) {
 }
 
 bool guardarVenta(FILE* fV, Comanda comanda) {
-	fseek(fV, 0,SEEK_END);
+	fseek(fV, 0, SEEK_END);
 	if (fwrite(&comanda, sizeof(Comanda), 1, fV) == 1) {
 		cout << "Venta agregada correctamente" << endl;
 		return true;
@@ -205,7 +206,7 @@ bool guardarVenta(FILE* fV, Comanda comanda) {
 }
 
 void buscarMozo(FILE* fM, Mozo& m, int idMozo) {	//busqueda PUP, con el id/pos ya conocido
-	long pos = idMozo -1;
+	long pos = idMozo - 1;
 	fseek(fM, pos * sizeof(Mozo), SEEK_SET);
 	fread(&m, sizeof(Mozo), 1, fM);
 }
@@ -221,7 +222,7 @@ long buscarMozo(FILE* fM, Mozo& m) {	//busqueda PUP, con el mozo como parametro 
 		cin >> idMozo;
 	}
 
-	fseek(fM, (idMozo-1) * sizeof(Mozo), SEEK_SET);
+	fseek(fM, (idMozo - 1) * sizeof(Mozo), SEEK_SET);
 	encontrado = fread(&m, sizeof(Mozo), 1, fM);	//1 encontrado | 0 no encontrado
 	if (!encontrado) {
 		cout << "El mozo con el id: " << idMozo << ", no fue encontrado" << endl;
@@ -239,7 +240,7 @@ bool loginMozo(Mozo m) {
 	cin.getline(passIngresada, 20);
 	for (int i = 0;i < 20;i++) {
 		if (passIngresada[i] == '\0' && m.password[i] == '\0') return true; //no hubo discrepancia y ambas contras llegaron al final (sino compara basura con basura) --> login
-		if (passIngresada[i]+K != m.password[i]) return false;	//hay discrepancia -> !login 
+		if (passIngresada[i] + K != m.password[i]) return false;	//hay discrepancia -> !login 
 	}
 	return true; //no hubo discrepancia -> login 
 
@@ -250,8 +251,8 @@ void cargarVenta(Mozo m, Producto p, Comanda& cN) {
 	cN.codigoProducto = p.codigo;
 	cout << "Ingrese la cantidad de " << p.descripcion << endl;
 	cin >> cN.cantidad;
-	while (cN.cantidad <=0 || p.stockActual < cN.cantidad) {
-		if(cN.cantidad<=0) cout<<"La cantidad debe ser mayor a 0"<<endl;
+	while (cN.cantidad <= 0 || p.stockActual < cN.cantidad) {
+		if (cN.cantidad <= 0) cout << "La cantidad debe ser mayor a 0" << endl;
 		else cout << "No hay suficiente stock del producto: " << p.descripcion << " - stock actual: " << p.stockActual << endl;
 		cout << "Vuelva a ingresar una cantidad valida" << endl;
 		cin >> cN.cantidad;
@@ -313,7 +314,7 @@ void actualizarComisionMozo(FILE* fM, Comanda c) {
 	Mozo mozo;
 	buscarMozo(fM, mozo, c.idMozo);
 	mozo.totalComision += c.comision;
-	fseek(fM, (mozo.idMozo-1) * sizeof(Mozo), SEEK_SET);
+	fseek(fM, (mozo.idMozo - 1) * sizeof(Mozo), SEEK_SET);
 	fwrite(&mozo, sizeof(Mozo), 1, fM);
 }
 
