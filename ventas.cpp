@@ -160,7 +160,9 @@ FILE* abrirArchivoComanda() {
 
 void cargarFecha(char fecha[]) {
 	cout << "Ingrese la fecha (formato dd-MM-aaaa)" << endl;
-	cin.ignore();
+	if (cin.peek() == '\n') {
+		cin.ignore();
+	}	
 	cin.getline(fecha,11);
 }
 
@@ -236,7 +238,9 @@ long buscarMozo(FILE* fM, Mozo& m) {	//busqueda PUP, con el mozo como parametro 
 bool loginMozo(Mozo m) {
 	char passIngresada[20];
 	cout << "Ingrese la contrasena del mozo con id: " << m.idMozo << endl;
-	cin.ignore();
+	if (cin.peek() == '\n') {
+		cin.ignore();
+	}	
 	cin.getline(passIngresada, 20);
 	for (int i = 0;i < 20;i++) {
 		if (passIngresada[i] == '\0' && m.password[i] == '\0') return true; //no hubo discrepancia y ambas contras llegaron al final (sino compara basura con basura) --> login
